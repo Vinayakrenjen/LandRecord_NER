@@ -5,31 +5,34 @@ from model import BiLSTM_CRF
 import os
 
 # --- CONFIGURATION ---
+# --- CONFIGURATION ---
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "../saved_models/bilstm_crf.pth")
-VOCAB_PATH = os.path.join(BASE_DIR, "../saved_models/vocab.pkl")
+# Robust Path Resolution
+# src/app.py -> src/ -> [Root]
+PROJ_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+MODEL_PATH = os.path.join(PROJ_ROOT, "saved_models", "bilstm_crf.pth")
+VOCAB_PATH = os.path.join(PROJ_ROOT, "saved_models", "vocab.pkl")
 
 # --- LOAD RESOURCES ---
 @st.cache_resource
 def load_resources():
-    if not os.path.exists(VOCAB_PATH) or not os.path.exists(MODEL_PATH):
+    # Remove manual existence check to let torch/pickle raise specific errors if they fail
+    try:
+        with open(VOCAB_PATH, "rb") as f:
+            vocab = pickle.load(f)
+        
+        word_to_ix = vocab['word_to_ix']
+        tag_to_ix = vocab['tag_to_ix']
+        ix_to_tag = {v: k for k, v in tag_to_ix.items()}
+        
+        model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, 100, 256)
+        model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
+        model.to(DEVICE)
+        model.eval()
+        return model, word_to_ix, ix_to_tag
+    except Exception as e:
+        st.error(f"💥 Fatal Error loading model: {e}")
         return None, None, None
-
-    with open(VOCAB_PATH, "rb") as f:
-        vocab = pickle.load(f)
-    
-    word_to_ix = vocab['word_to_ix']
-    tag_to_ix = vocab['tag_to_ix']
-    ix_to_tag = {v: k for k, v in tag_to_ix.items()}
-    
-    # Initialize model (embedding matrix will be loaded from state dict)
-    model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, 100, 256)
-    model.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE))
-    model.to(DEVICE)
-    model.eval()
-    
-    return model, word_to_ix, ix_to_tag
 
 model, word_to_ix, ix_to_tag = load_resources()
 
@@ -52,9 +55,6 @@ def extract_info(text):
         tag_ids = model.predict(tensor_in, mask)[0]
     
     tags = [ix_to_tag[i] for i in tag_ids]
-    
-    # --- NO HARDCODED LOGIC ENGINE ---
-    # We trust the model.
     return words, tags
 
 # --- USER INTERFACE ---
@@ -63,26 +63,7 @@ st.title("🧠 Pure BiLSTM-CRF (Advanced Data)")
 st.info("This model runs without rule-based overrides. It relies entirely on the quality of training data.")
 
 if not model:
-    st.error("⚠️ Model not found!")
-    
-    # --- DEBUGGING INFO ---
-    st.write("### 🕵️ Troubleshooting Info")
-    st.write(f"**Current Script Location:** `{BASE_DIR}`")
-    st.write(f"**Listing parent folder (`../`):**")
-    try:
-        parent_dir = os.path.dirname(BASE_DIR)
-        files = os.listdir(parent_dir)
-        st.code("\n".join(files))
-        
-        saved_models_path = os.path.join(parent_dir, "saved_models")
-        if os.path.exists(saved_models_path):
-             st.write(f"**Listing `saved_models` folder:**")
-             st.code("\n".join(os.listdir(saved_models_path)))
-        else:
-             st.error("❌ `saved_models` folder DOES NOT EXIST here.")
-    except Exception as e:
-        st.error(f"Error listing files: {e}")
-        
+    st.warning("Application halted due to loading error.")
     st.stop()
 
 input_text = st.text_area("Enter Legal Text:", height=100)
