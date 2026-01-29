@@ -63,7 +63,26 @@ st.title("🧠 Pure BiLSTM-CRF (Advanced Data)")
 st.info("This model runs without rule-based overrides. It relies entirely on the quality of training data.")
 
 if not model:
-    st.error("⚠️ Model not found! Please train the model first by running `python src/train.py`.")
+    st.error("⚠️ Model not found!")
+    
+    # --- DEBUGGING INFO ---
+    st.write("### 🕵️ Troubleshooting Info")
+    st.write(f"**Current Script Location:** `{BASE_DIR}`")
+    st.write(f"**Listing parent folder (`../`):**")
+    try:
+        parent_dir = os.path.dirname(BASE_DIR)
+        files = os.listdir(parent_dir)
+        st.code("\n".join(files))
+        
+        saved_models_path = os.path.join(parent_dir, "saved_models")
+        if os.path.exists(saved_models_path):
+             st.write(f"**Listing `saved_models` folder:**")
+             st.code("\n".join(os.listdir(saved_models_path)))
+        else:
+             st.error("❌ `saved_models` folder DOES NOT EXIST here.")
+    except Exception as e:
+        st.error(f"Error listing files: {e}")
+        
     st.stop()
 
 input_text = st.text_area("Enter Legal Text:", height=100)
