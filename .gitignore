@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+
+# Environment variables
+.env
+
+# Large Data & Embeddings
+data/glove/
+*.zip
+
+# Trained Models (Optional: Comment out if you want to push models < 100MB)
+saved_models/
+
+# OS specific
+.DS_Store
+Thumbs.db
