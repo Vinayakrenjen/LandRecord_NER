@@ -1,5 +1,7 @@
 # Advanced Land Record NER System
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white_red.svg)](https://landrecord-ner.streamlit.app/)
+
 A production-grade Named Entity Recognition (NER) system designed to extract key entities (Buyer, Seller, Amount, Survey No, Location, Date) from unstructured legal land record texts.
 
 **Performance:** 1.0 F1 Score (Validation) | **Architecture:** BiLSTM-CRF + GloVe
